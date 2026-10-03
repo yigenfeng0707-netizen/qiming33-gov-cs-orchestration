@@ -1,0 +1,32 @@
+__pycache__/
+*.pyc
+
+# 演示运行输出（可随时重跑生成，不入库）
+prototype/offline.txt
+prototype/live_db.txt
+
+# 含平台地址/凭据指路与内部账号信息，单独提交给接口人，不进开源仓库
+MySQL数据库访问.txt
+evidence/
+evidence-toolchain-bugs.md
+evidence-toolchain-bugs-微信版.txt
+evidence-toolchain-bugs.zip
+待主办方确认事项.txt
+materials/
+_ppt_shots/
+_ppt_check/
+ppt/
+3-3-路演PPT-v1.pptx
+submission-materials.md
+
+# mock 库附件包与邮件正文按单提交，不随源码发布
+mock-data/qiming33-mock-sql.zip
+mock-data/邮件正文-发主办方.txt
+
+# 腾讯文档填表过程脚本与留痕（含共享表内其他队伍数据截图/导出，绝不入公网库）
+scripts/
+
+# 内部过程文档与技能分发件（非项目交付物）
+进度分析-*.md
+tencent-docs-sheet-automation.zip
+tencent-docs-sheet-automation-SKILL.md
