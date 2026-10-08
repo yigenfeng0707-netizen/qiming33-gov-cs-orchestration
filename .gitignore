@@ -30,3 +30,6 @@ scripts/
 进度分析-*.md
 tencent-docs-sheet-automation.zip
 tencent-docs-sheet-automation-SKILL.md
+
+# 清理归档（2026-10-03）：一次性过程脚本/日志/旧截图集中存放，不入库不随包发布
+_archive/
