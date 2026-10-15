@@ -1,5 +1,10 @@
 # 3-3 数字员工工厂 · 登记配置草案（可直接填表）
 
+> **【2026-10-15 更新】本文档为 9-23~9-25 的实测留档，以下三处结论已被 10-15 的实测推翻或更新（正文相应位置已加更正标注）：**
+> 1. **「缺陷 B = postApi 转发丢 body」已证伪关闭**（见「一·补4」postApi 契约逆向小节更正）：绕开静默返回的工厂 UI「测试」按钮全程 REST 化重测，ACS 网关真实调度 postApi 且完整解析，10 卡 `parse/test` 10/10 PASS ⇒ 原误判根因在我方测试路径，非平台缺陷。
+> 2. **工厂 10 个 ACS 端点已全部从回显服务（httpbin.org/post）替换为编排工作流真后端**（`businessType=BID` 三行 fixed 路由 + JSON 信封），并重新发布 ACTIVE。
+> 3. **超级员工25 已重发布 V6**（10-15 16:45，挂载全部 10 卡，apply id=155 自审批通过）；此前 V3 及本文「一·补4」V2 实录均为历史版本。挂载恢复与发布全 REST 链路配方见 `evidence/_emp25_restore_20261015/summary.json`（下架 5→1 → draft(empOpTypeCode=21) → publish/submit → applyStatus 自审批）。
+
 > 用途：照此在数字员工工厂 `<平台主机>:<端口-工厂>` 逐项填入。
 > 字段严格对齐 2026-09-23 实测表单：ACS 登记 `/#/agent-register`（步骤1 基本信息 → 步骤2 接口规范配置）；超级数字员工 `/#/add-super-employee`。
 > 数据一律脱敏/mock。省份=浙江；所属系统=政企客户服务系统；鉴权方式/智能体代理按"就近网关、与网关网络打通"填，演示阶段可指向 mock 端点。
@@ -253,8 +258,15 @@
 
 - 注册表：`GET /workflow-api/api-info` 列出全部已注册能力（含<他队选手>团队的"杭州政支…售前处工作流"，url 指向 `<平台内网服务>:<端口-工具链API>/v1/workflows/run/<uuid>`）。
 - `POST /workflow-api/ApiController/addApi {url,name}` → 200 返回 id；`GET deleteApi?apiId=xxx` 删除。
-- **postApi 按 `businessType=<api-info 的 id 字段>` 查配置**（传 name/appId 均 404）；命中后向配置 url 转发——**但实测转发 body 恒为空**（httpbin 回显 Content-Length:0），任何字段名（body/data/params/inputs…）都透传不过去 → 这就是工作流被调时 422 "body Field required" 的根因，属工具链侧 bug。
-- 结论：在工具链修复前，任何 ACS 用 postApi 做后端都只能收到空参。当前 orchestrator ACS 端点暂指 `https://httpbin.org/post`（回显服务，用于通过测试+自动上架验证）；W4 演示前需换成真实可达后端。
+- **postApi 按 `businessType=<api-info 的 id 字段>` 查配置**（传 name/appId 均 404）；命中后向配置 url 转发——**但实测转发 body 恒为空**（httpbin 回显 Content-Length:0），任何字段名（body/data/params/inputs…）都透传不过去 → 这就是工作流被调时 422 "body Field required" 的根因，属工具链侧 bug。~~⚠️ 【10-15 更正：本条结论已证伪】~~ —— 见下方「10-15 复测更正」。
+- 结论：~~在工具链修复前，任何 ACS 用 postApi 做后端都只能收到空参。当前 orchestrator ACS 端点暂指 `https://httpbin.org/post`（回显服务，用于通过测试+自动上架验证）；W4 演示前需换成真实可达后端。~~ **【10-15 更正】该结论系我方误判**：`POST <平台主机>:<端口-工具链API>/api/v1/ans/parse/test` 传完整 register 载荷，ACS 网关真实调度 postApi 并完整解析返回（`ymlResult` 渲染完整），10 卡 10/10 PASS。误判根因 = 工厂 UI「测试」按钮在载荷构造失败时**静默 return**（不报错不发包），与平台转发无关。10 卡端点现已全部改为三行 fixed 路由（`businessType=BID` / `apiKey=""` / `apiData=JSON 信封`）并发布 ACTIVE。
+
+### 【10-15 复测更正】postApi 契约 —— 缺陷 B 关闭
+
+- 复测方式：全程 REST 化（`parse/test` → `agents/register`），不经过 UI「测试」按钮；载荷在原始 JSON 文本上正则护数防 19-20 位 id 被 JSON.parse 抹零。
+- 结果：parse/test 10/10 PASS（34–89s/卡，墙钟含 ACS 网关真实调度 postApi 与返回解析），随即 `register(status:"ACTIVE")` 10/10 上架。
+- 状态枚举 {ACTIVE, INACTIVE, TEMPORARY, TESTFAILED}；UI「测试」按钮静默 return 的行为已确认为载荷构造失败所致。
+- 证据：`evidence/_acs_rest_publish_20261015/`；脚本（见 `_archive/2026-10-15/` 与根目录保留链）`rest-build-payloads.js` / `rest-test-publish.js`。
 
 ### 员工25 V2 发布实录（下线→再发布链路）
 
@@ -278,6 +290,17 @@
 - [x] #10 zj.govcs.summary 服务闭环总结 — 已发布（trace=Object）
 - [x] 员工25 挂载：#/my-agent 10 条全部「已发布」；编辑页技能与服务→智能体选择「已选择」共 10 条（含 orchestrator），保存并退出
 - [x] 下线→自批→发布 V3→自批（2026-09-25 09:42:13 提交，work-space 状态=已发布）。**新坑**：审核弹窗（下线审核/发布审核）的"审批意见"必填，只点"通过"radio 直接确认会静默无效弹窗不关；审批/查看按钮在待审列表行内有镜像重复，按"行文本含 审批"定位整行再点
+
+**【10-15 更新】端点替换 + 挂载恢复 + V6 重发布（阶段二收尾）**
+
+- 10 卡 ACS 端点全部替换为编排工作流真后端（三行 fixed 路由），`parse/test` 10/10 PASS 后 `register(status:"ACTIVE")` 重新上架。
+- 员工25 挂载恢复：10-15 曾出现 `toolList` 退化至 1/10（仅 orchestrator）——授权目录仍为 10 卡，但员工配置丢失。恢复链路（**全程 REST，UI「修改」在 status=5 时被后端拒「当前数字员工状态已变更请刷新数据！」**）：
+  1. `POST digital-employee-publish-claw/published/applyDelete {status:"delete", reason, employeeId:25}` → 5→1（下架自批秒过）；
+  2. `POST digital-employee-claw/draft`（Ke 白名单 form + `empOpTypeCode=21`，toolList 条目 `{toolId,toolType,toolName=nameCn,tooldesc=describeText,isEnable:true}`，目录来源 `tool/authorizations/page?employeeId=25&toolType=0`，服务端自动回填 `mcpApiInfoList` 2030–2144 项/卡）；
+  3. `GET digital-employee-publish-claw/version/generate` 拿 publishName=V6 → `POST publish/submit`（SubmitVO 只要基础信息字段 + employeeId/publishName/publishDesc； creatorId 等外字段让 Jackson 报错）→ apply PENDING；
+  4. `POST published/applyStatus {id,status:"APPROVED",reason,employeeId}` 自审批落地（本账号有 `employPublishAudit:approval`）。
+- 结果：employeeStatus=5、V6（history id=88）、10 工具全挂 id 22–31 全 isEnable。⚠️ `detail.published` 布尔位 V5 以来恒 false，**不是**上架指标；真实指标 = employeeStatus=5 + published/history 最新记录。
+- 证据：`evidence/_emp25_restore_20261015/summary.json`（完整配方 + 载荷形状）。
 
 ## 一·补5 知识库写入实测（2026-09-25，task #16 完成）
 

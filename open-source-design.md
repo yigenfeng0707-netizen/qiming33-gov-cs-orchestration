@@ -52,15 +52,15 @@ cd prototype && python orchestrator.py      # 需 Python ≥3.10，零第三方�
 
 ## 5. 边界：这个原型不是、也不假装是什么
 
-1. **它是参考实现，不是评分载体。** 合规硬门槛要求交付物注册在**数字员工工厂**并在**云网智能工作台**演示 —— 那部分是真的（10 个 ACS 已发布、超级员工25 已发布 V3、六步演示同一会话跑通）。本地壳只承担"设计与源码可开源"这一项。
+1. **它是参考实现，不是评分载体。** 合规硬门槛要求交付物注册在**数字员工工厂**并在**云网智能工作台**演示 —— 那部分是真的（10 个 ACS 已发布 ACTIVE、超级员工25 已发布 V6、六步演示同一会话跑通）。本地壳只承担"设计与源码可开源"这一项。
 2. **业务 handler 是 mock，但数据不是话术。** 默认模式返回脱敏样例（示例客户A / `MOCK-CUST-0001` / `MOCK-DEVICE-A07`），不含真实网管数据；`--db` 模式改从**主办方官方共享库 `qiming33_mock`** 只读查询（2026-09-27 由技术老师建库并回传 `<只读账号>`），路演里报的 19 台 / 7 台 / 3.20% / 2 条变更等数字都是该库的 SELECT 结果，`mock-data/03_verify.sql` 21 条自检在真库逐条 PASS。
 3. **耗时不是平台耗时。** 本壳单次 ACS 调用 0.25–0.55s；真环境单步 130–200s。本壳验证的是**编排逻辑与时序约束**，不是性能。
-4. **换真实后端只改一处、但目前改不了。** 把 `AcsTransport.dispatch()` 里 `HANDLERS[code](payload, cost)` 换成 `POST` 到工厂登记的 ACS 端点即可。**这个"单点分叉"已被验证过一次**：`--db` 模式正是在同一处分叉传入 `bus.handlers`（`prototype/mock_db.py` 的九条真库只读 SELECT），编排逻辑、时序断言与离线模式完全共用，没有改动第二处。**当前被平台侧缺陷阻塞**：`workflow-api/ApiController/postApi` 转发时丢弃请求体（四种载荷写法均回显 `Content-Length: 0`），真实后端收不到入参 ⇒ 见 `evidence-toolchain-bugs.md` 缺陷 B。修复前，工厂里 10 个 ACS 的端点只能指向回显服务。
+4. **换真实后端只改一处——平台侧已无阻塞。** 把 `AcsTransport.dispatch()` 里 `HANDLERS[code](payload, cost)` 换成 `POST` 到工厂登记的 ACS 端点即可。**这个"单点分叉"已被验证过一次**：`--db` 模式正是在同一处分叉传入 `bus.handlers`（`prototype/mock_db.py` 的九条真库只读 SELECT），编排逻辑、时序断言与离线模式完全共用，没有改动第二处。**曾判定阻塞此路径的「缺陷 B」已证伪关闭（10-15）**：我们原记录 `workflow-api/ApiController/postApi` 转发丢请求体（四种载荷写法均回显 `Content-Length: 0`），后绕开在载荷构造失败时静默返回的工厂 UI「测试」按钮、全程 REST 化重测，ACS 网关真实调度 postApi 并完整解析返回，10 卡 parse/test 10/10 PASS ⇒ 误判根因在我们自己的测试路径（取证与更正过程见 `evidence-toolchain-bugs.md`，证据包已提交主办方）。**工厂里 10 个 ACS 的端点现已全部替换为编排工作流真后端并重新上架**；本仓库 `dispatch()` 保持本地 handler 不变，仅作离线可复现的对照路径。
 
 ## 6. 待办
 
 - [x] 建独立仓库并补 `LICENSE` / `README`（2026-09-25 提前完成）——`README.md`（含目录表、ACS 契约表、三条边界、**不随包发布清单**）、`LICENSE`（官方 Apache-2.0 全文，从 apache.org 拉取，11358 字符）、`LICENSE-docs.md`（CC BY-4.0 + "样例全为 mock"声明）。**排除项已定**：`evidence/`、`evidence-toolchain-bugs*`（含平台内网地址与原始抓包，只单独发接口人）、`MySQL数据库访问.txt`（现已是无凭据的指路文件）、`materials/`、`_ppt_shots/`、`submission-materials.md`。**仓库本体已上线（2026-10-03）**：`https://github.com/yigenfeng0707-netizen/qiming33-gov-cs-orchestration`（公开，`main`，21 个文件）。⚠️ 本机 `github.com:443` git 协议不可达（90s 超时），推送走 `gh-api-push` 技能的 REST 链路；该链路把多个本地提交**压平成一个远端提交**，所以远端 sha 与本地 sha 不等价——增量推送时 `--base` 取"上次推送时的本地 HEAD"（其树与远端树等价），推完须用 `git ls-tree -r HEAD` 与远端 `git/trees/main?recursive=1` 逐 blob 比对确认零差异。
 - [x] `knowledge-samples/` 本地文件名与线上已发布标题**已对齐**（原 2 个不一致的文件已改名，5 篇现同名）
 - [x] **推公网仓库前脱敏已完成**（2026-10-03）。10-01 那次记"复扫零命中"是**错的**（只换了主机名/账号/邮箱三项），10-03 重扫 21 个跟踪文件查出 50+ 处残留后补齐。统一映射：真实 IP 与平台主机名→`<平台主机>`；端口→`<端口-工厂>`／`<端口-工作台>`／`<端口-知识平台>`／`<端口-工具链Web>`／`<端口-工具链API>`／`<端口-DB>`；内网服务 DNS→`<平台内网服务>`；参赛人→`<参赛者姓名>`、队友→`<队友1/2>`、接口人→`<接口人-知识RAG/工具链/建库账号/工厂>`、他队选手→`<他队选手>`；库账号→`<只读账号>`；平台内部 id→`<会话任务id>`／`<项目分类option值>`／`<内部uuid>`；本机绝对路径用户名→由 `Path.home()` 动态解析（`prototype/mock_db.py`，改后真库回归仍 21/21 PASS）。**核验口径**：扫描器覆盖 IP／7 个具体端口／中文人名／账号名／内网名／本地用户路径／32 位 hex／UUID／邮箱九类形态，结果 **21 个跟踪文件 / 0 命中**。提交包内可保留原样（另一版本）。
-- [ ] 缺陷 B 修复后，把 `dispatch()` 指到真实 ACS 并用工厂「测试」节点回归
+- [x] **缺陷 B 已证伪关闭（10-15）**：REST 化重测 10 卡 parse/test 10/10 PASS，工厂 10 个 ACS 端点已全部换成编排工作流真后端并重新上架；本仓库 `dispatch()` 的本地 handler 对照路径保持不变（见 §5 第 4 条）
 - [ ] 若打通 RAG 消费通路（#17），在此实现里把知识检索接进 `proposal` / `hidden` 两个 handler
