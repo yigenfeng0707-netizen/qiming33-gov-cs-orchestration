@@ -34,8 +34,13 @@ tencent-docs-sheet-automation-SKILL.md
 # 清理归档（2026-10-03）：一次性过程脚本/日志/旧截图集中存放，不入库不随包发布
 _archive/
 
-# 10-15 阶段二工厂 REST 化过程脚本与 node 依赖（ws），不入库
+# 10-15 过程脚本（CDP/REST/hub 探针、会话接管、录屏驱动），一次性产物，用完归档 _archive/
 /rest-*.js
+/cdp-*.js
+/tmp-*.js
+/tmp-*.py
+/wb_*.js
+/wb_*.py
 /wb_regression.js
 /package.json
 /package-lock.json
